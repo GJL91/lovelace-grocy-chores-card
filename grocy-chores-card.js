@@ -1,8 +1,15 @@
 customElements.whenDefined('card-tools').then(() => {
   let cardTools = customElements.get('card-tools');
     
+  const ONE_DAY_MILLIS = 24 * 60 * 60 * 1000;
+  const DEFAULT_USER_ID = 1;
+  const DateDisplayFormat = {
+    DATE: 'date',
+    COUNTDOWN: 'countdown'
+  };
+
   class GrocyChoresCard extends cardTools.LitElement {
-    
+
     setConfig(config) {
       if (!config.entity) {
         throw new Error('Please define entity');
@@ -10,50 +17,76 @@ customElements.whenDefined('card-tools').then(() => {
       this.config = config;
     }
     
-    calculateDueDate(dueDate){
-      var oneDay = 24*60*60*1000; // hours*minutes*seconds*milliseconds
-      var today = new Date();
+    _calculateDueDate(dueDate){
+      let today = new Date();
       today.setHours(0,0,0,0)
 
       var splitDate = dueDate.split(/[- :T]/)
       var parsedDueDate = new Date(splitDate[0], splitDate[1]-1, splitDate[2]);
       parsedDueDate.setHours(0,0,0,0)
       
-      var dueInDays;
-      if(today > parsedDueDate) {
-        dueInDays = -1;
-      }
-      else
-        dueInDays = Math.round(Math.abs((today.getTime() - parsedDueDate.getTime())/(oneDay)));
-
-      return dueInDays;
+      return Math.round((today.getTime() - parsedDueDate.getTime()) / ONE_DAY_MILLIS) * -1;
     }
 
-    checkDueClass(dueInDays) {
-      if (dueInDays == 0)
+    _checkDueClass(dueInDays) {
+      if (dueInDays == 0) {
         return "due-today";
-      else if (dueInDays < 0)
-        return "overdue";
-      else
-        return "not-due";
+      }
+
+      return dueInDays < 0 ? "overdue" : "not-due";
     }
 
-    formatDueDate(dueDate, dueInDays) {
-      if (dueInDays < 0)
-        return this.translate("Overdue");
-      else if (dueInDays == 0)
-        return this.translate("Today");
-      else
-        return dueDate.substr(0, 10);
+    _formatDueDate(dueDate, dueInDays) {
+      if (dueInDays == 0) {
+        return this._translate("Today");
+      }
+      
+      if (dueInDays === 1) {
+        return this._translate("Tomorrow");
+      }
+
+      if (this.config.date_display_format === DateDisplayFormat.COUNTDOWN) {
+        return this._formatToCountdown(dueInDays);
+      }
+
+      return dueInDays < 0 ? this._translate("Overdue") : dueDate.substr(0, 10);
     }
 
-    translate(string) {
-      if((this.config.custom_translation != null) &&
-          (this.config.custom_translation[string] != null))
-          {
-             return this.config.custom_translation[string];
-          }
-      return string;
+    _formatToCountdown(dueInDays) {
+      let dateString = this._getCountdownString(Math.abs(dueInDays));
+      return dueInDays > 0 ? dateString : `${dateString} ${this._translate("overdue")}`;
+    }
+
+    _getCountdownString(days) {
+      if (days > 364) {
+        let years = Math.round(days / 365);
+        return `${years} ${this._pluralise('year', years)}`;
+      }
+
+      if (days > 30) {
+        let months = Math.round(days / 30);
+        return `${months} ${this._pluralise('month', months)}`;
+      }
+
+      if (days > 6) {
+        let weeks = Math.round(days / 7);
+        return `${weeks} ${this._pluralise('week', weeks)}`;
+      }
+
+      return `${days} ${this._pluralise('day', days)}`;
+    }
+
+    _pluralise(text, x) {
+      return this._translate(`${text}${x > 1 ? 's' : ''}`);
+    }
+
+    _translate(value) {
+      if (!this.config.custom_translation) {
+        return value;
+      }
+
+      let translatedValue = this.config.custom_translation[value];
+      return translatedValue ? translatedValue : value;
     }
   
     render(){
@@ -84,34 +117,34 @@ customElements.whenDefined('card-tools').then(() => {
                   <div>
                     ${chore._filtered_name != null ? chore._filtered_name : chore.name}
                     <div class="secondary">
-                      ${this.translate("Due")}: <span class="${chore.next_estimated_execution_time != null ? this.checkDueClass(chore.dueInDays) : ""}">${chore.next_estimated_execution_time != null ? this.formatDueDate(chore.next_estimated_execution_time, chore.dueInDays) : "-"}</span>
+                      ${this._translate("Due")}: <span class="${chore.next_estimated_execution_time != null ? this._checkDueClass(chore.dueInDays) : ""}">${chore.next_estimated_execution_time != null ? this._formatDueDate(chore.next_estimated_execution_time, chore.dueInDays) : "-"}</span>
                     </div>
                     ${this.show_assigned == true && chore.next_execution_assigned_user != null ? cardTools.LitHtml
                       `
                       <div class="secondary">
-                          ${this.translate("Assigned to")}: ${chore.next_execution_assigned_user.display_name}
+                          ${this._translate("Assigned to")}: ${chore.next_execution_assigned_user.display_name}
                       </div>
                       `
                     : ""}
                     ${this.show_last_tracked == true ? cardTools.LitHtml
                       `
                     <div class="secondary">
-                      ${this.translate("Last tracked")}: ${chore.last_tracked_time != null ? chore.last_tracked_time.substr(0, 10) : "-"}
-                      ${this.show_last_tracked_by == true && chore.last_done_by != null ? this.translate("by") + " " + chore.last_done_by.display_name : ""}
+                      ${this._translate("Last tracked")}: ${chore.last_tracked_time != null ? chore.last_tracked_time.substr(0, 10) : "-"}
+                      ${this.show_last_tracked_by == true && chore.last_done_by != null ? this._translate("by") + " " + chore.last_done_by.display_name : ""}
                     </div>
                     `
                     : ""}
                   </div>
                   <div>
-                    <mwc-button @click=${ev => this._track(chore.id, chore.next_execution_assigned_user == null ? 1 : chore.next_execution_assigned_user.id )}>${this.translate("Track")}</mwc-button>
+                    <mwc-button @click=${() => this._track(chore)}>${this._translate("Track")}</mwc-button>
                   </div>
                 </div>`
-              )}` : cardTools.LitHtml`<div class="info flex">${this.translate("No chores")}!</div>`}
+              )}` : cardTools.LitHtml`<div class="info flex">${this._translate("No chores")}!</div>`}
             </div>
-            ${this.notShowing.length > 0 ? cardTools.LitHtml
+            ${this.notShowing > 0 ? cardTools.LitHtml
               `
               <div class="secondary">
-                  ${this.translate("Look in Grocy for {number} more chores").replace("{number}", this.notShowing.length)}
+                  ${this._translate(`Look in Grocy for ${this.notShowing} more chores`)}
               </div>
               `
             : ""}
@@ -119,14 +152,44 @@ customElements.whenDefined('card-tools').then(() => {
       `;
     } 
 
-    _track(choreId, userId){
-      if (this.config.user_id != null)
-        userId = this.config.user_id;
-      
+    _track(chore){
+      let userId = this._determineTrackingUser(chore);
       this._hass.callService("grocy", "execute_chore", {
-        chore_id: choreId,
+        chore_id: chore.id,
         done_by: userId
       });
+    }
+
+    _determineTrackingUser(chore) {
+      if (this.config.use_next_assignee_to_track !== false && chore.next_execution_assigned_user !== null) {
+        return chore.next_execution_assigned_user;
+      }
+
+      return this._getUserId();
+    }
+
+    _getUserId() {
+      if (!this.config.user_id) {
+        return DEFAULT_USER_ID;
+      }
+
+      // If it's defined and is a number, return the defined value
+      if (this._isNumber(this.config.user_id)) {
+        return this.config.user_id;
+      }
+
+      let username = this._hass.user.name;
+      if (!username) {
+        return DEFAULT_USER_ID;
+      }
+
+      let userId = this.config.user_id_case_insensitive !== false ? this._findCaseInsensitiveKey(this.config.user_id, username) : this.config.user_id[username];
+      return userId ? userId : DEFAULT_USER_ID;
+    }
+
+    _findCaseInsensitiveKey(obj, key) {
+      let searchKey = key.toLowerCase(); 
+      return obj[Object.keys(obj).find(key => key.toLowerCase() === searchKey)];
     }
 
     _renderStyle() {
@@ -171,9 +234,6 @@ customElements.whenDefined('card-tools').then(() => {
 
       this.header = this.config.title == null ? "Chores" : this.config.title;
 
-      this.show_quantity = this.config.show_quantity == null ? null : this.config.show_quantity;
-      this.show_days = this.config.show_days == null ? null : this.config.show_days;
-
       this.filter = this.config.filter == null ? null : this.config.filter;
       this.filter_user = this.config.filter_user == null ? null : this.config.filter_user;
       this.remove_filter = this.config.remove_filter == null ? false : this.config.remove_filter;
@@ -189,7 +249,7 @@ customElements.whenDefined('card-tools').then(() => {
         var chores = this.entity.attributes.chores;
         var allChores = []
   
-        if(chores != null){
+        if (chores != null) {
           chores.sort(function(a,b){
             if (a.next_estimated_execution_time != null && b.next_estimated_execution_time != null) {
               var aSplitDate = a.next_estimated_execution_time.split(/[- :T]/)
@@ -209,7 +269,6 @@ customElements.whenDefined('card-tools').then(() => {
               if (chores[i].name.includes(this.filter)) {
                 if (this.remove_filter) {
                   chores[i]._filtered_name = chores[i].name.replace(this.filter, '');
-                  // console.log(chores[i]._filtered_name)
                 }
                 filteredChores.push(chores[i]);
               }
@@ -228,32 +287,29 @@ customElements.whenDefined('card-tools').then(() => {
           }
   
           chores.map(chore =>{
-            var dueInDays = chore.next_estimated_execution_time ? this.calculateDueDate(chore.next_estimated_execution_time) : 10000;
+            var dueInDays = chore.next_estimated_execution_time ? this._calculateDueDate(chore.next_estimated_execution_time) : 10000;
             chore.dueInDays = dueInDays;
-            if(this.show_days != null) {
-              if(dueInDays <= this.show_days){
+            if (this._isNumber(this.config.show_days)) {
+              if (dueInDays <= this.config.show_days) {
                 allChores.push(chore);
-              }
-              else if(chore.next_estimated_execution_time != null && chore.next_estimated_execution_time.slice(0,4) == "2999") {
+              } else if(chore.next_estimated_execution_time != null && chore.next_estimated_execution_time.slice(0,4) == "2999") {
                 chore.next_estimated_execution_time = "-";
                 allChores.unshift(chore)
               }
-            }
-            else {
-              if(chore.next_estimated_execution_time == null || dueInDays == 10000 || chore.next_estimated_execution_time.slice(0,4) == "2999"){
+            } else {
+              if (chore.next_estimated_execution_time == null || dueInDays == 10000 || chore.next_estimated_execution_time.slice(0,4) == "2999") {
                 chore.next_estimated_execution_time = "-";
                 allChores.unshift(chore)
-              }
-              else
+              } else {
                 allChores.push(chore);
+              }
             }
           })
           
-          if(this.show_quantity != null){
-            this.chores = allChores.slice(0, this.show_quantity);
-            this.notShowing = allChores.slice(this.show_quantity);
-          }
-          else{
+          if (this._isNumber(this.config.show_quantity)) {
+            this.chores = allChores.slice(0, this.config.show_quantity);
+            this.notShowing = allChores.length - this.config.show_quantity;
+          } else {
             this.chores = allChores;
             this.notShowing = 0;
           }
@@ -263,11 +319,14 @@ customElements.whenDefined('card-tools').then(() => {
         
         this.state = this.entity.state
       }
-      
 
       this.requestUpdate();
     }
     
+    _isNumber(value) {
+      return !isNaN(value);
+    }
+
     // @TODO: This requires more intelligent logic
     getCardSize() {
       return 3;
