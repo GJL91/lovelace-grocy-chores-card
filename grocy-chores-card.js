@@ -1,8 +1,9 @@
 customElements.whenDefined('card-tools').then(() => {
   let cardTools = customElements.get('card-tools');
-    
+
   const ONE_DAY_MILLIS = 24 * 60 * 60 * 1000;
   const DEFAULT_USER_ID = 1;
+  const DEFAULT_UNKNOWN_DATE = "-";
   const DateDisplayFormat = {
     DATE: 'date',
     COUNTDOWN: 'countdown'
@@ -14,18 +15,19 @@ customElements.whenDefined('card-tools').then(() => {
       if (!config.entity) {
         throw new Error('Please define entity');
       }
+
       this.config = config;
     }
-    
-    _calculateDueDate(dueDate){
-      let today = new Date();
-      today.setHours(0,0,0,0)
 
-      var splitDate = dueDate.split(/[- :T]/)
-      var parsedDueDate = new Date(splitDate[0], splitDate[1]-1, splitDate[2]);
-      parsedDueDate.setHours(0,0,0,0)
-      
-      return Math.round((today.getTime() - parsedDueDate.getTime()) / ONE_DAY_MILLIS) * -1;
+    _calculateDueDate(dueDate) {
+      if (!dueDate) {
+        return -Infinity;
+      }
+
+      let today = new Date();
+      today.setHours(0, 0, 0, 0)
+
+      return Math.round((today.getTime() - dueDate.getTime()) / ONE_DAY_MILLIS) * -1;
     }
 
     _checkDueClass(dueInDays) {
@@ -33,14 +35,14 @@ customElements.whenDefined('card-tools').then(() => {
         return "due-today";
       }
 
-      return dueInDays < 0 ? "overdue" : "not-due";
+      return dueInDays < 0 && dueInDays !== -Infinity ? "overdue" : "not-due";
     }
 
     _formatDueDate(dueDate, dueInDays) {
       if (dueInDays == 0) {
         return this._translate("Today");
       }
-      
+
       if (dueInDays === 1) {
         return this._translate("Tomorrow");
       }
@@ -49,10 +51,22 @@ customElements.whenDefined('card-tools').then(() => {
         return this._formatToCountdown(dueInDays);
       }
 
-      return dueInDays < 0 ? this._translate("Overdue") : dueDate.substr(0, 10);
+      return dueInDays < 0 && dueInDays !== -Infinity ? this._translate("Overdue") : this._formatDate(dueDate);
+    }
+
+    _formatDate(date) {
+      if (!date) {
+        return DEFAULT_UNKNOWN_DATE;
+      }
+
+      return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
     }
 
     _formatToCountdown(dueInDays) {
+      if (dueInDays === -Infinity) {
+        return DEFAULT_UNKNOWN_DATE;
+      }
+
       let dateString = this._getCountdownString(Math.abs(dueInDays));
       return dueInDays > 0 ? dateString : `${dateString} ${this._translate("overdue")}`;
     }
@@ -88,10 +102,10 @@ customElements.whenDefined('card-tools').then(() => {
       let translatedValue = this.config.custom_translation[value];
       return translatedValue ? translatedValue : value;
     }
-  
-    render(){
+
+    render() {
       if (!this.entity)
-      return html`
+        return html`
       <hui-warning>
         ${this._hass.localize("ui.panel.lovelace.warning.entity_not_found",
           "entity",
@@ -115,24 +129,24 @@ customElements.whenDefined('card-tools').then(() => {
                 cardTools.LitHtml`
                 <div class="info flex">
                   <div>
-                    ${chore._filtered_name != null ? chore._filtered_name : chore.name}
+                    ${chore._filtered_name ? chore._filtered_name : chore.name}
                     <div class="secondary">
-                      ${this._translate("Due")}: <span class="${chore.next_estimated_execution_time != null ? this._checkDueClass(chore.dueInDays) : ""}">${chore.next_estimated_execution_time != null ? this._formatDueDate(chore.next_estimated_execution_time, chore.dueInDays) : "-"}</span>
+                      ${this._translate("Due")}: <span class="${this._checkDueClass(chore.dueInDays)}">${this._formatDueDate(chore.next_estimated_execution_time, chore.dueInDays)}</span>
                     </div>
-                    ${this.show_assigned == true && chore.next_execution_assigned_user != null ? cardTools.LitHtml
+                    ${this.config.show_assigned !== false && chore.next_execution_assigned_user ? cardTools.LitHtml
                       `
                       <div class="secondary">
-                          ${this._translate("Assigned to")}: ${chore.next_execution_assigned_user.display_name}
+                        ${this._translate("Assigned to")}: ${chore.next_execution_assigned_user.display_name}
                       </div>
                       `
                     : ""}
-                    ${this.show_last_tracked == true ? cardTools.LitHtml
+                    ${this.config.show_last_tracked !== false ? cardTools.LitHtml
                       `
-                    <div class="secondary">
-                      ${this._translate("Last tracked")}: ${chore.last_tracked_time != null ? chore.last_tracked_time.substr(0, 10) : "-"}
-                      ${this.show_last_tracked_by == true && chore.last_done_by != null ? this._translate("by") + " " + chore.last_done_by.display_name : ""}
-                    </div>
-                    `
+                      <div class="secondary">
+                        ${this._translate("Last tracked")}: ${chore.last_tracked_time ? chore.last_tracked_time.substr(0, 10) : DEFAULT_UNKNOWN_DATE}
+                        ${this.config.show_last_tracked_by !== false && chore.last_done_by ? this._translate("by") + " " + chore.last_done_by.display_name : ""}
+                      </div>
+                      `
                     : ""}
                   </div>
                   <div>
@@ -144,7 +158,7 @@ customElements.whenDefined('card-tools').then(() => {
             ${this.notShowing > 0 ? cardTools.LitHtml
               `
               <div class="secondary">
-                  ${this._translate(`Look in Grocy for ${this.notShowing} more chores`)}
+                ${this._translate('Look in Grocy for {number} more chores').replace('{number}', this.notShowing)}
               </div>
               `
             : ""}
@@ -152,7 +166,7 @@ customElements.whenDefined('card-tools').then(() => {
       `;
     } 
 
-    _track(chore){
+    _track(chore) {
       let userId = this._determineTrackingUser(chore);
       this._hass.callService("grocy", "execute_chore", {
         chore_id: chore.id,
@@ -161,8 +175,8 @@ customElements.whenDefined('card-tools').then(() => {
     }
 
     _determineTrackingUser(chore) {
-      if (this.config.use_next_assignee_to_track !== false && chore.next_execution_assigned_user !== null) {
-        return chore.next_execution_assigned_user;
+      if (this.config.use_next_assignee_to_track !== false && chore.next_execution_assigned_user) {
+        return chore.next_execution_assigned_user.id;
       }
 
       return this._getUserId();
@@ -188,12 +202,12 @@ customElements.whenDefined('card-tools').then(() => {
     }
 
     _findCaseInsensitiveKey(obj, key) {
-      let searchKey = key.toLowerCase(); 
+      let searchKey = key.toLowerCase();
       return obj[Object.keys(obj).find(key => key.toLowerCase() === searchKey)];
     }
 
     _renderStyle() {
-        return cardTools.LitHtml
+      return cardTools.LitHtml
         `
           <style>
             ha-card {
@@ -225,104 +239,101 @@ customElements.whenDefined('card-tools').then(() => {
           }
           </style>
         `;
-      }
-    
+    }
+
     set hass(hass) {
       this._hass = hass;
-      
       this.entity = this.config.entity in hass.states ? hass.states[this.config.entity] : null;
-
       this.header = this.config.title == null ? "Chores" : this.config.title;
+      this.notShowing = 0;
 
-      this.filter = this.config.filter == null ? null : this.config.filter;
-      this.filter_user = this.config.filter_user == null ? null : this.config.filter_user;
-      this.remove_filter = this.config.remove_filter == null ? false : this.config.remove_filter;
-
-      this.show_assigned = this.config.show_assigned == null ? true : this.config.show_assigned;
-      this.show_last_tracked = this.config.show_last_tracked == null ? true : this.config.show_last_tracked;
-      this.show_last_tracked_by = this.config.show_last_tracked_by == null ? true : this.config.show_last_tracked_by;
-
-      if (this.entity) {
-        if (this.entity.state == 'unknown')
-          throw new Error("The Grocy sensor is unknown.");
-
-        var chores = this.entity.attributes.chores;
-        var allChores = []
-  
-        if (chores != null) {
-          chores.sort(function(a,b){
-            if (a.next_estimated_execution_time != null && b.next_estimated_execution_time != null) {
-              var aSplitDate = a.next_estimated_execution_time.split(/[- :T]/)
-              var bSplitDate = b.next_estimated_execution_time.split(/[- :T]/)
-    
-              var aParsedDueDate = new Date(aSplitDate[0], aSplitDate[1]-1, aSplitDate[2]);
-              var bParsedDueDate = new Date(bSplitDate[0], bSplitDate[1]-1, bSplitDate[2]);
-    
-              return aParsedDueDate - bParsedDueDate;
-            }
-              return;
-          })
-  
-          if (this.filter != null) {
-            var filteredChores = [];
-            for (let i = 0; i < chores.length; i++) {
-              if (chores[i].name.includes(this.filter)) {
-                if (this.remove_filter) {
-                  chores[i]._filtered_name = chores[i].name.replace(this.filter, '');
-                }
-                filteredChores.push(chores[i]);
-              }
-            }
-            chores = filteredChores;
-          }
-  
-          if (this.filter_user != null) {
-            var filteredChores = [];
-            for (let i = 0; i < chores.length; i++) {
-              if (chores[i].next_execution_assigned_user != null && chores[i].next_execution_assigned_user.id == this.filter_user) {
-                filteredChores.push(chores[i]);
-              }
-            }
-            chores = filteredChores;
-          }
-  
-          chores.map(chore =>{
-            var dueInDays = chore.next_estimated_execution_time ? this._calculateDueDate(chore.next_estimated_execution_time) : 10000;
-            chore.dueInDays = dueInDays;
-            if (this._isNumber(this.config.show_days)) {
-              if (dueInDays <= this.config.show_days) {
-                allChores.push(chore);
-              } else if(chore.next_estimated_execution_time != null && chore.next_estimated_execution_time.slice(0,4) == "2999") {
-                chore.next_estimated_execution_time = "-";
-                allChores.unshift(chore)
-              }
-            } else {
-              if (chore.next_estimated_execution_time == null || dueInDays == 10000 || chore.next_estimated_execution_time.slice(0,4) == "2999") {
-                chore.next_estimated_execution_time = "-";
-                allChores.unshift(chore)
-              } else {
-                allChores.push(chore);
-              }
-            }
-          })
-          
-          if (this._isNumber(this.config.show_quantity)) {
-            this.chores = allChores.slice(0, this.config.show_quantity);
-            this.notShowing = allChores.length - this.config.show_quantity;
-          } else {
-            this.chores = allChores;
-            this.notShowing = 0;
-          }
-        }
-        else
-          this.chores = allChores;
-        
-        this.state = this.entity.state
+      if (!this.entity) {
+        this.requestUpdate();
+        return;
       }
 
+      if (this.entity.state === 'unknown') {
+        throw new Error("The Grocy sensor is unknown.");
+      }
+
+      let chores = this.entity.attributes.chores;
+      if (chores != null) {
+        chores = this._filterAndPreprocessChores(chores);
+        this._sortChores(chores);
+
+        if (this._isNumber(this.config.show_quantity)) {
+          this.chores = chores.slice(0, this.config.show_quantity);
+          this.notShowing = chores.length - this.config.show_quantity;
+        } else {
+          this.chores = chores;
+        }
+      } else {
+        this.chores = [];
+      }
+
+      this.state = this.entity.state
       this.requestUpdate();
     }
-    
+
+    _filterAndPreprocessChores(chores) {
+      if (!this.config.filter && !this.config.filter_user) {
+        chores.forEach(chore => this._preprocessChore(chore));
+        return chores;
+      }
+
+      var filteredChores = [];
+      chores.forEach(chore => {
+        if (this.config.filter) {
+          if (!chore.name.includes(this.config.filter)) {
+            return
+          }
+
+          if (this.config.remove_filter === true) {
+            chore._filtered_name = chore.name.replace(this.config.filter, '');
+          }
+        }
+
+        if (this.config.filter_user && !chore.next_execution_assigned_user.id !== this.config.filter_user) {
+          return;
+        }
+
+        this._preprocessChore(chore);
+        if (this._isNumber(this.config.show_days) && chore.dueInDays > this.config.show_days) {
+          return;
+        }
+
+        filteredChores.push(chore);
+      });
+
+      return filteredChores;
+    }
+
+    _preprocessChore(chore) {
+      if (chore.preprocessed) {
+        return;
+      }
+
+      let dueDate = null;
+      if (chore.next_estimated_execution_time) {
+        let splitDate = chore.next_estimated_execution_time.split(/[- :T]/);
+        dueDate = new Date(splitDate[0], splitDate[1] - 1, splitDate[2]);
+        if (dueDate.getFullYear() === 2999) {
+          dueDate = null;
+        }
+
+        chore.next_estimated_execution_time = dueDate;
+      }
+
+      chore.dueInDays = this._calculateDueDate(chore.next_estimated_execution_time);
+      chore.preprocessed = true;
+    }
+
+    _sortChores(chores) {
+      chores.sort(function (a, b) {
+        return a.dueInDays - b.dueInDays;
+      });
+    }
+
     _isNumber(value) {
       return !isNaN(value);
     }
@@ -332,7 +343,7 @@ customElements.whenDefined('card-tools').then(() => {
       return 3;
     }
   }
-  
+
   customElements.define('grocy-chores-card', GrocyChoresCard);
   });
   
