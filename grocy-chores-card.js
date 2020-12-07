@@ -299,7 +299,8 @@ customElements.whenDefined('card-tools').then(() => {
         }
       }
 
-      return !this.config.filter_user || chore.next_execution_assigned_user.id === this.config.filter_user;
+      return !this.config.filter_user 
+        || (chore.next_execution_assigned_user && chore.next_execution_assigned_user.id === this.config.filter_user);
     }
 
     _preprocessChore(chore) {

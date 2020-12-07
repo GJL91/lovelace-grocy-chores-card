@@ -1,9 +1,31 @@
 # grocy-chores-card
+
+{% if prerelease %}
+### NB!: This is a Beta version!
+{% endif %}
+
 A Lovelace custom card for [custom component Grocy](https://github.com/custom-components/grocy) in Home Assistant.
 
 <img src="https://github.com/isabellaalstrom/lovelace-grocy-chores-card/blob/master/grocy-chores-card.png" alt="Grocy Chores Card" />
 
 **This card reqires [card tools](https://github.com/thomasloven/lovelace-card-tools).**
+
+{% if installed %}
+## Changes as compared to your installed version:
+
+### Breaking Changes
+
+### Changes
+
+### Features
+
+{% if version_installed.replace("v", "").replace(".","") | int < 300  %}
+- Added option to use `user_id` as a mapping of HomeAssistant usernames to Grocy user ids
+- Added configuration option `use_next_assignee_to_track`. Defaults to `true`
+- Added configuration option `date_display_format` to allow users to have dates show as a countdown (i.e. Due in 3 days)
+{% endif %}
+
+### Bugfixes
 
 ## Example configuration
 
