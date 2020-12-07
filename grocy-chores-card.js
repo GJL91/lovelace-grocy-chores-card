@@ -259,14 +259,9 @@ customElements.whenDefined('card-tools').then(() => {
       let chores = this.entity.attributes.chores;
       if (chores != null) {
         chores = this._filterAndPreprocessChores(chores);
-        this._sortChores(chores);
-
-        if (this._isNumber(this.config.show_quantity)) {
-          this.chores = chores.slice(0, this.config.show_quantity);
-          this.notShowing = chores.length - this.config.show_quantity;
-        } else {
-          this.chores = chores;
-        }
+        chores.sort((a, b) => a.dueInDays - b.dueInDays);
+        this.chores = this._isNumber(this.config.show_quantity) ? chores.slice(0, this.config.show_quantity) : chores;
+        this.notShowing = chores.length - this.chores.length;
       } else {
         this.chores = [];
       }
@@ -276,24 +271,9 @@ customElements.whenDefined('card-tools').then(() => {
     }
 
     _filterAndPreprocessChores(chores) {
-      if (!this.config.filter && !this.config.filter_user) {
-        chores.forEach(chore => this._preprocessChore(chore));
-        return chores;
-      }
-
       var filteredChores = [];
       chores.forEach(chore => {
-        if (this.config.filter) {
-          if (!chore.name.includes(this.config.filter)) {
-            return
-          }
-
-          if (this.config.remove_filter === true) {
-            chore._filtered_name = chore.name.replace(this.config.filter, '');
-          }
-        }
-
-        if (this.config.filter_user && !chore.next_execution_assigned_user.id !== this.config.filter_user) {
+        if (!this._filterChore(chore)) {
           return;
         }
 
@@ -306,6 +286,20 @@ customElements.whenDefined('card-tools').then(() => {
       });
 
       return filteredChores;
+    }
+
+    _filterChore(chore) {
+      if (this.config.filter) {
+        if (!chore.name.includes(this.config.filter)) {
+          return false;
+        }
+
+        if (this.config.remove_filter === true) {
+          chore._filtered_name = chore.name.replace(this.config.filter, '');
+        }
+      }
+
+      return !this.config.filter_user || chore.next_execution_assigned_user.id === this.config.filter_user;
     }
 
     _preprocessChore(chore) {
@@ -326,12 +320,6 @@ customElements.whenDefined('card-tools').then(() => {
 
       chore.dueInDays = this._calculateDueDate(chore.next_estimated_execution_time);
       chore.preprocessed = true;
-    }
-
-    _sortChores(chores) {
-      chores.sort(function (a, b) {
-        return a.dueInDays - b.dueInDays;
-      });
     }
 
     _isNumber(value) {
