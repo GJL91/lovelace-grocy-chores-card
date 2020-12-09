@@ -1,5 +1,13 @@
 # grocy-chores-card
 
+[![GitHub Release](https://img.shields.io/github/release/GJL91/lovelace-grocy-chores-card?style=for-the-badge)](https://github.com/GJL91/lovelace-grocy-chores-card/releases)
+![GitHub Release Date](https://img.shields.io/github/release-date/GJL91/lovelace-grocy-chores-card?style=for-the-badge)
+![GitHub commit activity](https://img.shields.io/github/commit-activity/y/GJL91/lovelace-grocy-chores-card?style=for-the-badge)
+
+[![GitHub issues](https://img.shields.io/github/issues/GJL91/lovelace-grocy-chores-card?style=for-the-badge)](https://github.com/GJL91/lovelace-grocy-chores-card/issues)
+
+[![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge)](https://github.com/custom-components/hacs)
+
 {% if prerelease %}
 ### NB!: This is a Beta version!
 {% endif %}
