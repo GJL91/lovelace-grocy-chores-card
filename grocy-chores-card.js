@@ -259,7 +259,7 @@ customElements.whenDefined('card-tools').then(() => {
       let chores = this.entity.attributes.chores;
       if (chores != null) {
         chores = this._filterAndPreprocessChores(chores);
-        chores.sort((a, b) => a.dueInDays - b.dueInDays);
+        chores.sort((a, b) => this._sort(a, b));
         this.chores = this._isNumber(this.config.show_quantity) ? chores.slice(0, this.config.show_quantity) : chores;
         this.notShowing = chores.length - this.chores.length;
       } else {
@@ -321,6 +321,11 @@ customElements.whenDefined('card-tools').then(() => {
 
       chore.dueInDays = this._calculateDueDate(chore.next_estimated_execution_time);
       chore.preprocessed = true;
+    }
+
+    _sort(a, b) {
+      let difference = a.dueInDays - b.dueInDays;
+      return difference !== 0 ? difference : a.name.localeCompare(b.name);
     }
 
     _isNumber(value) {
