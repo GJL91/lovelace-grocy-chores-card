@@ -271,14 +271,18 @@ customElements.whenDefined('card-tools').then(() => {
     }
 
     _filterAndPreprocessChores(chores) {
-      var filteredChores = [];
+      const minDaysToShow = this._getMinDaysToShow();
+      const maxDaysToShow = this._getMaxDaysToShow();
+      const filterDaysToShow = this._isNumber(minDaysToShow) || this._isNumber(maxDaysToShow);
+
+      const filteredChores = [];
       chores.forEach(chore => {
         if (!this._filterChore(chore)) {
           return;
         }
 
         this._preprocessChore(chore);
-        if (this._isNumber(this.config.show_days) && chore.dueInDays > this.config.show_days) {
+        if (filterDaysToShow && !this._filterByDayRange(chore.dueInDays, minDaysToShow, maxDaysToShow)) {
           return;
         }
 
@@ -323,9 +327,30 @@ customElements.whenDefined('card-tools').then(() => {
       chore.preprocessed = true;
     }
 
+    _filterByDayRange(dueInDays, minDaysToShow, maxDaysToShow) {
+      return this._atLeastMinDays(dueInDays, minDaysToShow)
+        && this._atMostMaxDays(dueInDays, maxDaysToShow);
+    }
+
+    _atLeastMinDays(dueInDays, minDaysToShow) {
+      return !this._isNumber(minDaysToShow) || dueInDays >= minDaysToShow;
+    }
+
+    _atMostMaxDays(dueInDays, maxDaysToShow) {
+      return !this._isNumber(maxDaysToShow) || dueInDays <= maxDaysToShow;
+    }
+
     _sort(a, b) {
       let difference = a.dueInDays - b.dueInDays;
       return difference !== 0 ? difference : a.name.localeCompare(b.name);
+    }
+
+    _getMinDaysToShow() {
+      return this.config.show_days_min;
+    }
+
+    _getMaxDaysToShow() {
+      return this._isNumber(this.config.show_days_max) ? this.config.show_days_max : this.config.show_days;
     }
 
     _isNumber(value) {
