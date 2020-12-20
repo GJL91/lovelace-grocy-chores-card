@@ -4,9 +4,16 @@ customElements.whenDefined('card-tools').then(() => {
   const ONE_DAY_MILLIS = 24 * 60 * 60 * 1000;
   const DEFAULT_USER_ID = 1;
   const DEFAULT_UNKNOWN_DATE = "-";
+
   const DateDisplayFormat = {
     DATE: 'date',
     COUNTDOWN: 'countdown'
+  };
+
+  const ShowDaysType = {
+    EXACT: 'exact',
+    MIN: 'min',
+    MAX: 'max'
   };
 
   class GrocyChoresCard extends cardTools.LitElement {
@@ -271,8 +278,9 @@ customElements.whenDefined('card-tools').then(() => {
     }
 
     _filterAndPreprocessChores(chores) {
-      const minDaysToShow = this._getMinDaysToShow();
-      const maxDaysToShow = this._getMaxDaysToShow();
+      const exactDays = this._getDaysToShow(ShowDaysType.EXACT);
+      const minDaysToShow = this._isNumber(exactDays) ? exactDays : this._getDaysToShow(ShowDaysType.MIN);
+      const maxDaysToShow = this._isNumber(exactDays) ? exactDays : this._getDaysToShow(ShowDaysType.MAX);
       const filterDaysToShow = this._isNumber(minDaysToShow) || this._isNumber(maxDaysToShow);
 
       const filteredChores = [];
@@ -345,12 +353,21 @@ customElements.whenDefined('card-tools').then(() => {
       return difference !== 0 ? difference : a.name.localeCompare(b.name);
     }
 
-    _getMinDaysToShow() {
-      return this.config.show_days_min;
+    _getDaysToShow(showDaysType) {
+      switch (showDaysType) {
+        case ShowDaysType.EXACT:
+        case ShowDaysType.MIN:
+          return this.config.show_days[showDaysType];
+        case ShowDaysType.MAX:
+          return this._getMaxDaysToShow()
+        default:
+          return null;
+      }
     }
 
     _getMaxDaysToShow() {
-      return this._isNumber(this.config.show_days_max) ? this.config.show_days_max : this.config.show_days;
+      const maxDays = this.config.show_days[ShowDaysType.MAX];
+      return this._isNumber(maxDays) ? maxDays : this.config.show_days;
     }
 
     _isNumber(value) {
