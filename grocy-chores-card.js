@@ -354,6 +354,10 @@ customElements.whenDefined('card-tools').then(() => {
     }
 
     _getDaysToShow(showDaysType) {
+      if (!this.config.show_days) {
+        return null;
+      }
+
       switch (showDaysType) {
         case ShowDaysType.EXACT:
         case ShowDaysType.MIN:
