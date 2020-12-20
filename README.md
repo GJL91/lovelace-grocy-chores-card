@@ -69,7 +69,7 @@ A Lovelace custom card for [custom component Grocy](https://github.com/custom-co
 | user_id | number / string-list | **Optional** | `1` | Id of the Grocy user performing the tasks. Default if not specified is `1`, which should be the admin user in Grocy. Alternatively, you may supply a mapping of HomeAssistant usernames to Grocy user ids
 | user_id_case_insensitive | bool | **Optional** | `true` | When supplying a mapping of HomeAssistant usernames to grocy user ids, treat usernames as case-insensitive
 | use_next_assignee_to_track | bool | **Optional** | `true` | Whether to use the next assigned user when tracking a chore if one exists 
-| custom_translation | string-list | **Optional** |  | List of translations of string values used in the card (see [below](#changing_default_text)).
+| custom_translation | string-list | **Optional** |  | List of translations of string values used in the card (see [below](#changing-default-text)).
 | filter | string | **Optional** |  | Only show chores that contains this filter in the name.
 | remove_filter | bool | **Optional** | `false` | Use together with `filter` to remove the filter from the name when showing in card. Chore name "Yard work: Clean rain gutters" with filter "Yard work: " will then only display "Clean rain gutters".
 | filter_user | number | **Optional** |  | Only show chores assigned to the used with this user_id. Ex: `1`
