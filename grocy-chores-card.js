@@ -354,7 +354,7 @@ customElements.whenDefined('card-tools').then(() => {
     }
 
     _isNumber(value) {
-      return !isNaN(value);
+      return value !== null && !isNaN(value);
     }
 
     // @TODO: This requires more intelligent logic
