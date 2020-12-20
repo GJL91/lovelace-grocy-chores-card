@@ -1,5 +1,6 @@
 {
     "name": "Lovelace Grocy Chores Card",
     "content_in_root": true,
-    "filename": "grocy-chores-card.js"
+    "filename": "grocy-chores-card.js",
+    "render_readme": true
 }

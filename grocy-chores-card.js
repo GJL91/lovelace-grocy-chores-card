@@ -125,10 +125,15 @@ customElements.whenDefined('card-tools').then(() => {
         ${this._renderStyle()}
         ${cardTools.LitHtml
           `<ha-card>
-            <div class="header">
+            <div class="header flex">
               <div class="name">
                 ${this.header}
               </div>
+              ${this.config.show_track_all_button !== false && this.chores.length > 0 ? cardTools.LitHtml
+                `
+                <mwc-button @click=${() => this._trackAll(this.chores)}>${this._translate("Track all")}</mwc-button>
+                `
+              : ""}
             </div>
             <div>
               ${this.chores.length > 0 ? cardTools.LitHtml`
@@ -172,6 +177,12 @@ customElements.whenDefined('card-tools').then(() => {
           </ha-card>`}
       `;
     } 
+
+    _trackAll(chores) {
+      chores.forEach(chore => {
+        this._track(chore);
+      });
+    }
 
     _track(chore) {
       const userId = this._determineTrackingUser(chore);

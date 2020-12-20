@@ -16,19 +16,14 @@ Easiest installation via [HACS](https://custom-components.github.io/hacs/).
 
 For manual installation see [this guide](https://github.com/thomasloven/hass-config/wiki/Lovelace-Plugins).
 
-
 **This card reqires [card tools](https://github.com/thomasloven/lovelace-card-tools).**
 
-
-
 ## Example configuration
-
-
 
 ```yaml
 title: My awesome Lovelace config
 resources:
-  - url: /local/grocy-chores-card.js
+  - url: /local/grocy-chores-card.js -or- /hacsfiles/lovelace-grocy-chores-card/grocy-chores-card.js
     type: js
 views:
   title: My view
@@ -57,7 +52,7 @@ views:
 | show_last_tracked | bool | **Optional** | `true` | Show when someone last tracked this chore
 | show_last_tracked_by | bool | **Optional** | `true` | Show who last tracked this chore (`show_last_tracked` must be true to show this)
 | date_display_format | string | **Optional** | `date` | Whether to show due dates as a `date` or a `countdown` (1 Day, 1 Week etc.)
-
+| show_track_all_button | bool | **Optional** | `true` | Whether to show a button to track all displayed chores in the header
 
 ## Advanced options
 It is possible to translate the following English strings in the card to whatever you like.
