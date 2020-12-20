@@ -78,6 +78,8 @@ A Lovelace custom card for [custom component Grocy](https://github.com/custom-co
 | show_last_tracked_by | bool | **Optional** | `true` | Show who last tracked this chore (`show_last_tracked` must be true to show this)
 | date_display_format | string | **Optional** | `date` | Whether to show due dates as a `date` or a `countdown` (1 Day, 1 Week etc.)
 | show_track_all_button | bool | **Optional** | `true` | Whether to show a button to track all displayed chores in the header
+| hide_tracked_chores.enabled | bool | **Optional** | `false` | Whether to hide chores when tracked
+| hide_tracked_chores.duration | number | **Optional** | `5` | How long to hide chores for before they'll reappear
 
 #### show_days options
 
@@ -144,6 +146,9 @@ date_display_format: countdown
 user_id:
   john: 2
   jane: 3
+hide_tracked_chores:
+  enabled: true
+  duration: 3
 ```
 
 #### Show only today's chores
@@ -159,6 +164,8 @@ show_days:
 user_id:
   john: 2
   jane: 3
+hide_tracked_chores:
+  enabled: true
 ```
 
 #### Show chores due in the next 3 days, excluding today's chores

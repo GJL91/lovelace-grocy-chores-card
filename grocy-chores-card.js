@@ -4,6 +4,7 @@ customElements.whenDefined('card-tools').then(() => {
   const ONE_DAY_MILLIS = 24 * 60 * 60 * 1000;
   const DEFAULT_USER_ID = 1;
   const DEFAULT_UNKNOWN_DATE = "-";
+  const DEFAULT_HIDE_DURATION = 5;
 
   const DateDisplayFormat = {
     DATE: 'date',
@@ -24,6 +25,22 @@ customElements.whenDefined('card-tools').then(() => {
       }
 
       this.config = config;
+      this.header = this.config.title == null ? "Chores" : this.config.title;
+      this.hide_chores = this._isHideChoresEnabled();
+      this.hide_chore_duration = this._getHideDuration();
+    }
+
+    _isHideChoresEnabled() {
+      return Boolean(this.config.hide_tracked_chores && this.config.hide_tracked_chores.enabled);
+    }
+
+    _getHideDuration() {
+      if (!this.hide_chores) {
+        return undefined;
+      }
+
+      const configured = this.config.hide_tracked_chores.duration;
+      return configured ? configured : DEFAULT_HIDE_DURATION;
     }
 
     _calculateDueDate(dueDate) {
@@ -138,10 +155,10 @@ customElements.whenDefined('card-tools').then(() => {
             <div>
               ${this.chores.length > 0 ? cardTools.LitHtml`
               ${this.chores.map(chore =>
-                cardTools.LitHtml`
+                !chore.hide ? cardTools.LitHtml`
                 <div class="info flex">
                   <div>
-                    ${chore._filtered_name ? chore._filtered_name : chore.name}
+                    ${this.config.filter && chore._filtered_name ? chore._filtered_name : chore.name}
                     <div class="secondary">
                       ${this._translate("Due")}: <span class="${this._checkDueClass(chore.dueInDays)}">${this._formatDueDate(chore.next_estimated_execution_time, chore.dueInDays)}</span>
                     </div>
@@ -164,7 +181,7 @@ customElements.whenDefined('card-tools').then(() => {
                   <div>
                     <mwc-button @click=${() => this._track(chore)}>${this._translate("Track")}</mwc-button>
                   </div>
-                </div>`
+                </div>` : ""
               )}` : cardTools.LitHtml`<div class="info flex">${this._translate("No chores")}!</div>`}
             </div>
             ${this.notShowing > 0 ? cardTools.LitHtml
@@ -176,7 +193,7 @@ customElements.whenDefined('card-tools').then(() => {
             : ""}
           </ha-card>`}
       `;
-    } 
+    }
 
     _trackAll(chores) {
       chores.forEach(chore => {
@@ -190,6 +207,8 @@ customElements.whenDefined('card-tools').then(() => {
         chore_id: chore.id,
         done_by: userId
       });
+
+      this._hideChore(chore);
     }
 
     _determineTrackingUser(chore) {
@@ -262,7 +281,6 @@ customElements.whenDefined('card-tools').then(() => {
     set hass(hass) {
       this._hass = hass;
       this.entity = this.config.entity in hass.states ? hass.states[this.config.entity] : null;
-      this.header = this.config.title == null ? "Chores" : this.config.title;
       this.notShowing = 0;
 
       if (!this.entity) {
@@ -327,6 +345,7 @@ customElements.whenDefined('card-tools').then(() => {
     }
 
     _preprocessChore(chore) {
+      this._unhideChore(chore);
       if (chore.preprocessed) {
         return;
       }
@@ -383,6 +402,28 @@ customElements.whenDefined('card-tools').then(() => {
     _getMaxDaysToShow() {
       const maxDays = this.config.show_days[ShowDaysType.MAX];
       return this._isNumber(maxDays) ? maxDays : this.config.show_days;
+    }
+
+    _hideChore(chore) {
+      if (!this.hide_chores) {
+        return;
+      }
+
+      chore.hide = true;
+      chore.hiddenAt = new Date();
+    }
+
+    _unhideChore(chore) {
+      if (!this.hide_chores || !chore.hide) {
+        return;
+      }
+
+      const now = new Date();
+      var seconds = (now.getTime() - chore.hiddenAt.getTime()) / 1000;
+      if (seconds > this.hide_chore_duration) {
+        chore.hide = false;
+        chore.hiddenAt = null;
+      }
     }
 
     _isNumber(value) {
