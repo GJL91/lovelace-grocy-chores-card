@@ -1,5 +1,5 @@
 customElements.whenDefined('card-tools').then(() => {
-  let cardTools = customElements.get('card-tools');
+  const cardTools = customElements.get('card-tools');
 
   const ONE_DAY_MILLIS = 24 * 60 * 60 * 1000;
   const DEFAULT_USER_ID = 1;
@@ -31,7 +31,7 @@ customElements.whenDefined('card-tools').then(() => {
         return -Infinity;
       }
 
-      let today = new Date();
+      const today = new Date();
       today.setHours(0, 0, 0, 0)
 
       return Math.round((today.getTime() - dueDate.getTime()) / ONE_DAY_MILLIS) * -1;
@@ -74,23 +74,23 @@ customElements.whenDefined('card-tools').then(() => {
         return DEFAULT_UNKNOWN_DATE;
       }
 
-      let dateString = this._getCountdownString(Math.abs(dueInDays));
+      const dateString = this._getCountdownString(Math.abs(dueInDays));
       return dueInDays > 0 ? dateString : `${dateString} ${this._translate("overdue")}`;
     }
 
     _getCountdownString(days) {
       if (days > 364) {
-        let years = Math.round(days / 365);
+        const years = Math.round(days / 365);
         return `${years} ${this._pluralise('year', years)}`;
       }
 
       if (days > 30) {
-        let months = Math.round(days / 30);
+        const months = Math.round(days / 30);
         return `${months} ${this._pluralise('month', months)}`;
       }
 
       if (days > 6) {
-        let weeks = Math.round(days / 7);
+        const weeks = Math.round(days / 7);
         return `${weeks} ${this._pluralise('week', weeks)}`;
       }
 
@@ -106,7 +106,7 @@ customElements.whenDefined('card-tools').then(() => {
         return value;
       }
 
-      let translatedValue = this.config.custom_translation[value];
+      const translatedValue = this.config.custom_translation[value];
       return translatedValue ? translatedValue : value;
     }
 
@@ -174,7 +174,7 @@ customElements.whenDefined('card-tools').then(() => {
     } 
 
     _track(chore) {
-      let userId = this._determineTrackingUser(chore);
+      const userId = this._determineTrackingUser(chore);
       this._hass.callService("grocy", "execute_chore", {
         chore_id: chore.id,
         done_by: userId
@@ -199,17 +199,17 @@ customElements.whenDefined('card-tools').then(() => {
         return this.config.user_id;
       }
 
-      let username = this._hass.user.name;
+      const username = this._hass.user.name;
       if (!username) {
         return DEFAULT_USER_ID;
       }
 
-      let userId = this.config.user_id_case_insensitive !== false ? this._findCaseInsensitiveKey(this.config.user_id, username) : this.config.user_id[username];
+      const userId = this.config.user_id_case_insensitive !== false ? this._findCaseInsensitiveKey(this.config.user_id, username) : this.config.user_id[username];
       return userId ? userId : DEFAULT_USER_ID;
     }
 
     _findCaseInsensitiveKey(obj, key) {
-      let searchKey = key.toLowerCase();
+      const searchKey = key.toLowerCase();
       return obj[Object.keys(obj).find(key => key.toLowerCase() === searchKey)];
     }
 
@@ -322,7 +322,7 @@ customElements.whenDefined('card-tools').then(() => {
 
       let dueDate = null;
       if (chore.next_estimated_execution_time) {
-        let splitDate = chore.next_estimated_execution_time.split(/[- :T]/);
+        const splitDate = chore.next_estimated_execution_time.split(/[- :T]/);
         dueDate = new Date(splitDate[0], splitDate[1] - 1, splitDate[2]);
         if (dueDate.getFullYear() === 2999) {
           dueDate = null;
@@ -349,7 +349,7 @@ customElements.whenDefined('card-tools').then(() => {
     }
 
     _sort(a, b) {
-      let difference = a.dueInDays - b.dueInDays;
+      const difference = a.dueInDays - b.dueInDays;
       return difference !== 0 ? difference : a.name.localeCompare(b.name);
     }
 
